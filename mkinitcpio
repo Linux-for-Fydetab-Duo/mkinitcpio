@@ -1091,6 +1091,17 @@ if [[ "$KERNELVERSION" != 'none' ]]; then
     fi
 
     if [[ -z "$KERNELIMAGE" ]]; then
+        # check version of ALARM kernels in /boot
+        for img in /boot/*Image* /boot/kernel*.img; do
+            if [[ -f $img && "$(kver "$img")" == "$KERNELVERSION" ]]; then
+                KERNELIMAGE="$img"
+                quiet "located kernel image: '%s'" "$KERNELIMAGE"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "$KERNELIMAGE" ]]; then
         # check version of all kernels in /boot
         for img in /boot/vmlinuz-* /boot/vmlinux-*; do
             if [[ -f "$img" && "$(kver "$img")" == "$KERNELVERSION" ]]; then

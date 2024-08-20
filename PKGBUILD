@@ -1,5 +1,5 @@
-pkgname=mkinitcpio-git
-pkgver=$(make version)
+pkgname=mkinitcpio
+pkgver=$(make version)-fyde
 pkgrel=1
 pkgdesc="Modular initramfs image creation utility"
 arch=(any)

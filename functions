@@ -439,11 +439,29 @@ kver_generic() {
     # rather than bailing, and inform the user if none was found.
 
     local kver=''
+    if [[ $1 =~ "/zImage" || $1 =~ /kernel7.img ]]; then
+        # Check for xz zImage
+        skip=$(LC_ALL=C grep -a -b -o $'\xFD\x37\x7A\x58\x5A\x00' $1 | tail -n 1 | cut -d ':' -f 1)
+        if [[ ! -z $skip ]]; then
+            read -r _ _ kver _ < <(dd if=$1 iflag=skip_bytes skip=$skip | xzcat | grep -m1 -aoE 'Linux version .(\.[-[:alnum:]+]+)+')
+        fi
+        if [[ -z "$kver" ]]; then
+            # Check for gzip zImage
+            skip=$(LC_ALL=C grep -a -b -o $'\x1f\x8b\x08\x00\x00\x00\x00\x00' $1 | head -n 1 | cut -d ':' -f 1)
+            if [[ ! -z $skip ]]; then
+              read -r _ _ kver _ < <(dd if=$1 iflag=skip_bytes skip=$skip | zcat | grep -m1 -aoE 'Linux version .(\.[-[:alnum:]+]+)+')
+            fi
+        fi
+    else
+        # Loosely grep for `linux_banner`:
+        # https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/init/version-timestamp.c?h=v6.7#n28
+        read -r _ _ kver _ < <(decompress_cat "$1" | grep -m1 -aoE 'Linux version .(\.[-[:alnum:]+]+)+')
+        # try if the image is gzip compressed
 
-    # Loosely grep for `linux_banner`:
-    # https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/init/version-timestamp.c?h=v6.7#n28
-    read -r _ _ kver _ < <(decompress_cat "$1" | grep -m1 -aoE 'Linux version .(\.[-_[:alnum:]+]+)+')
-
+        if [[ -z "$kver" ]]; then
+            read _ _ kver _ < <(gzip -c -d "$1" | grep -m1 -aoE 'Linux version .(\.[-[:alnum:]]+)+')
+        fi
+    fi
     printf '%s' "$kver"
 }
 
